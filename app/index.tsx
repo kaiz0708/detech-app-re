@@ -7,19 +7,19 @@ import { TouchableOpacity, Text, SafeAreaView } from 'react-native';
 let typeCamera : CameraType = "back"
 
 const Home: React.FC = () => {
-  const cameraRef = React.useRef<CameraView>(null);
   const router = useRouter();
   return (
     <SafeAreaView style={styles.container}>
-  
-      <View style={stylesButton.buttonRow}>
-        <TouchableOpacity style={stylesButton.buttonSub} onPress={() => router.push('/Camera')}>
-          <Text style={stylesButton.buttonText}>Detech ảnh và video</Text>
-        </TouchableOpacity>
-  
-        <TouchableOpacity style={stylesButton.buttonSub} onPress={() => router.push('/Update')}>
-          <Text style={stylesButton.buttonText}>Tải ảnh / video</Text>
-        </TouchableOpacity>
+      <View style={stylesButton.buttonContainer}>
+        <View style={stylesButton.buttonRow}>
+          <TouchableOpacity style={stylesButton.buttonSub} onPress={() => router.push('/Camera')}>
+            <Text style={stylesButton.buttonText}>Detech ảnh và stream</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={stylesButton.buttonSub} onPress={() => router.push('/Update')}>
+            <Text style={stylesButton.buttonText}>Tải ảnh / video</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -42,17 +42,26 @@ const styles = StyleSheet.create({
   });
   
   const stylesButton = StyleSheet.create({
+    buttonContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: '#fff',
+      paddingBottom: 10,
+      paddingTop: 10,
+    },
     buttonRow: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      padding: 10,
-      backgroundColor: '#fff',
+      paddingHorizontal: 10,
     },
     buttonSub: {
-      backgroundColor: '#007AFF', // màu xanh iOS
+      backgroundColor: '#007AFF',
       borderRadius: 10,
       paddingVertical: 10,
-      width: '30%',
+      paddingHorizontal: 15,
+      width: '40%',
       alignItems: 'center',
     },
     buttonText: {

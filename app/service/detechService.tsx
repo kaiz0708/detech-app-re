@@ -26,7 +26,7 @@ export default async function detectImage(uri : any) {
     } as any);
 
     const res = await axios.post(
-      'http://172.16.12.57:5000',
+      'http://192.168.1.131:5000',
       formData,
       {
         headers: {

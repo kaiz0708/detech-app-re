@@ -1,12 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, ScrollView, Button } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import detectImage from '../service/detechService';
 import { useVideoPlayer, VideoPlayer, VideoView, VideoSource } from 'expo-video';
 import { useEvent } from 'expo';
+import fetchSignInfo from '../service/getText';
 
 
 const UploadScreen: React.FC = () => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [fullText, setFullText] = useState('');
   const [mediaData, setMediaData] = useState<{
     type: 'image' | 'video' | null;
     uri: string | any | null;
@@ -16,18 +19,43 @@ const UploadScreen: React.FC = () => {
     uri: null,
     signs: [],
   });
-  const player = useVideoPlayer('http://172.16.12.57:5000/static/processed/processed_media.mp4', (player) => {
-    console.log('Player initialized');
+  const player = useVideoPlayer("", (player) => {
+    console.log(player)
   });
 
+  const getText = async (sign : string) => {
+    const res = await fetchSignInfo(sign);
+    setFullText(res);
+    setDisplayedText('');
+  }
+
   useEffect(() => {
-    if (player) {
-      player.play();
+    let i = 0;
+    let interval: any;
+  
+    if (fullText) {
+      const chars = Array.from(fullText); // hỗ trợ Unicode đúng cách
+      interval = setInterval(() => {
+        setDisplayedText((prev) => prev + chars[i]);
+        i++;
+        if (i >= chars.length) {
+          clearInterval(interval);
+        }
+      }, 20); 
     }
-  }, [player]);
+  
+    return () => clearInterval(interval);
+  }, [fullText]);
 
-  const playerRef = useRef<VideoView>(null);
+  const videoSource = useMemo(() => ({ uri: mediaData.uri }), [mediaData.uri]);
 
+  useEffect(() => {
+    if (mediaData.type === 'video' && videoSource.uri) {
+      player.replace(videoSource);
+    }
+  }, [videoSource]);
+
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
 
   const pickMedia = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -55,7 +83,7 @@ const UploadScreen: React.FC = () => {
             });
           } else if (result.processed_video) {
 
-            const videoUrl = `http://172.16.12.57:5000/${result.processed_video}`;
+            const videoUrl = `http://192.168.1.131:5000/${result.processed_video}`;
             setMediaData({
               type: 'video',
               uri: videoUrl,
@@ -82,24 +110,34 @@ const UploadScreen: React.FC = () => {
           </View>
         )}
 
-        
-        <View style={styles.mediaFrame}>
-         <VideoView 
-          style={{ width: '100%', height: "100%" }}
-          player={player} allowsFullscreen allowsPictureInPicture/>
-        </View>
+        {mediaData.type === "video" && mediaData.uri && (
+            <View style={styles.mediaFrame}>
+              <VideoView 
+                style={{ width: '100%', height: 400 }}
+                player={player} contentFit="contain" nativeControls/>
+            </View>
+          )}
         
 
         {mediaData.signs.length > 0 && (
           <View style={styles.signsContainer}>
             <Text style={styles.signsTitle}>Biển báo phát hiện:</Text>
             {mediaData.signs.map((sign, index) => (
-              <Text key={index} style={styles.signText}>
-                - {sign}
-              </Text>
+              <View key={index} style={styles.signRow}>
+                <Text style={styles.signText}>{sign}</Text>
+                <TouchableOpacity style={styles.explainButton} onPress={() => getText(sign)}>
+                  <Text style={styles.explainButtonText}>Giải thích</Text>
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
-        )}
+          )}
+          {displayedText !== '' && (
+            <View style={styles.explanationContainer}>
+              <Text style={styles.explanationTitle}>Giải thích:</Text>
+              <Text style={styles.explanationText}>{displayedText}</Text>
+            </View>
+)}
       </ScrollView>
 
       <View style={styles.bottomButtonContainer}>
@@ -135,26 +173,48 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
-    resizeMode: "contain"
   },
   signsContainer: {
-    width: '100%',
-    marginBottom: 20,
+    marginTop: 16,
+    width : "100%"
   },
   signsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+  signRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   signText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  explanationContainer: {
+    marginTop: 20,
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+  },
+  explanationTitle: {
+    fontWeight: 'bold',
     fontSize: 16,
+    marginBottom: 6,
+  },
+  explanationText: {
+    fontSize: 14,
     color: '#333',
   },
   button: {
     backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 15,
   },
   buttonText: {
     color: '#fff',
@@ -162,12 +222,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  explainButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  explainButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   bottomButtonContainer: {
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderColor: '#ddd',
   },
+  
 });
 export default UploadScreen;
 
